@@ -1,0 +1,41 @@
+<%- include('../partials/header') %>
+
+<div class="page-header">
+  <h1 class="page-title">Import Produk</h1>
+  <a href="/products" class="btn btn-secondary">Kembali</a>
+</div>
+
+<div class="card">
+  <div class="card-body">
+    <% if (typeof error !== 'undefined' && error) { %>
+      <div class="alert alert-error">
+        <%= error %>
+      </div>
+    <% } %>
+
+    <p>Upload file CSV atau Excel (.xlsx) untuk memasukkan banyak produk sekaligus.</p>
+    
+    <div class="alert alert-info" style="margin: 15px 0;">
+      <strong>Format Kolom Wajib:</strong> <code>kode_produk</code>, <code>nama_produk</code>, <code>harga_modal</code>, <code>stok</code>.<br>
+      (Opsional: <code>kategori</code>).<br>
+      Harga yang di-import adalah <strong>Harga Modal</strong>. Harga jual akan dikalkulasi nanti.
+    </div>
+
+    <div style="margin-bottom: 20px;">
+      <a href="/products/import/template" class="btn btn-secondary btn-sm">Download Template Import</a>
+    </div>
+
+    <form action="/products/import/preview" method="POST" enctype="multipart/form-data">
+      <div class="form-group">
+        <label for="file">Pilih File (CSV / XLSX)</label>
+        <input type="file" id="file" name="file" accept=".csv, .xlsx, .xls" required>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">Preview Data</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

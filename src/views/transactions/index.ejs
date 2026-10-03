@@ -1,0 +1,68 @@
+<%- include('../partials/header') %>
+
+<div class="page-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+  <h1 class="page-title">Riwayat Transaksi</h1>
+  <% if (user && user.role === 'ADMIN') { %>
+    <a href="/transactions/delete-period" class="btn btn-danger">Hapus Berdasarkan Periode</a>
+  <% } %>
+</div>
+
+<% if (typeof req !== 'undefined' && req.query && req.query.success) { %>
+  <div class="alert alert-success" style="color: white; background-color: #10b981; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem;">
+    <% if (req.query.success === 'deleted') { %>Transaksi berhasil dihapus.<% } %>
+    <% if (req.query.success === 'deleted_period') { %><%= req.query.count %> transaksi berhasil dihapus.<% } %>
+  </div>
+<% } %>
+
+<% if (typeof req !== 'undefined' && req.query && req.query.error) { %>
+  <div class="alert alert-danger" style="color: white; background-color: #ef4444; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem;">
+    <%= req.query.error %>
+  </div>
+<% } %>
+
+<form class="search-bar" action="/transactions" method="GET">
+  <input 
+    type="text" 
+    name="search" 
+    placeholder="Cari nomor invoice..." 
+    value="<%= search %>"
+    autocomplete="off"
+  >
+  <button type="submit" class="btn btn-primary">Cari</button>
+  <% if (search) { %>
+    <a href="/transactions" class="btn btn-secondary">Reset</a>
+  <% } %>
+</form>
+
+<div class="table-wrapper">
+  <table>
+    <thead>
+      <tr>
+        <th>Nomor Transaksi</th>
+        <th>Tanggal</th>
+        <th class="text-right">Total</th>
+        <th class="text-center">Aksi</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% if (transactions.length === 0) { %>
+        <tr>
+          <td colspan="4" class="text-center text-muted">Belum ada transaksi.</td>
+        </tr>
+      <% } else { %>
+        <% transactions.forEach(tx => { %>
+          <tr>
+            <td><strong><%= tx.invoice_number %></strong></td>
+            <td><%= new Date(tx.created_at).toLocaleString('id-ID') %></td>
+            <td class="text-right">Rp <%= tx.total_amount.toLocaleString('id-ID') %></td>
+            <td class="text-center">
+              <a href="/transactions/<%= tx.id %>" class="btn btn-sm btn-secondary">Detail</a>
+            </td>
+          </tr>
+        <% }) %>
+      <% } %>
+    </tbody>
+  </table>
+</div>
+
+<%- include('../partials/footer') %>

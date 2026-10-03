@@ -1,0 +1,89 @@
+<%- include('partials/header') %>
+
+<div class="dashboard-header" style="margin-bottom: 2rem;">
+  <h1 class="page-title">Dashboard</h1>
+  <p style="color: var(--color-text-secondary);">Ringkasan aktivitas PandaKids POS.</p>
+</div>
+
+<% if (typeof error !== 'undefined' && error) { %>
+  <div class="alert alert-danger" style="color: white; background-color: #ef4444; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem;"><%= error %></div>
+<% } %>
+
+<!-- Stats Cards -->
+<div class="grid grid-3 mb-lg">
+  <!-- Penjualan Hari Ini -->
+  <div class="card stat-card">
+    <div class="stat-icon">💰</div>
+    <h3 class="stat-label">Penjualan Hari Ini</h3>
+    <div class="stat-value">
+      Rp <%= new Intl.NumberFormat('id-ID').format(todayStats.total) %>
+    </div>
+  </div>
+
+  <!-- Jumlah Transaksi Hari Ini -->
+  <div class="card stat-card">
+    <div class="stat-icon">🛒</div>
+    <h3 class="stat-label">Transaksi Hari Ini</h3>
+    <div class="stat-value" style="color: var(--color-text);">
+      <%= todayStats.count %>
+    </div>
+  </div>
+
+  <!-- Jumlah Produk -->
+  <div class="card stat-card">
+    <div class="stat-icon">📦</div>
+    <h3 class="stat-label">Jumlah Produk</h3>
+    <div class="stat-value" style="color: var(--color-text);">
+      <%= totalProducts %>
+    </div>
+  </div>
+</div>
+
+<!-- Transaksi Terbaru -->
+<div class="card">
+  <div class="page-header" style="margin-bottom: 1rem;">
+    <h2 style="font-size: 1.25rem; margin: 0;">Transaksi Terbaru</h2>
+    <a href="/transactions" class="btn btn-outline btn-sm">Lihat Semua</a>
+  </div>
+  
+  <% if (recentTransactions && recentTransactions.length > 0) { %>
+    <div class="table-wrapper">
+      <table class="table" style="width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr style="border-bottom: 2px solid var(--color-border); text-align: left;">
+            <th style="padding: 1rem 0.5rem; color: var(--color-text-secondary);">Invoice</th>
+            <th style="padding: 1rem 0.5rem; color: var(--color-text-secondary);">Waktu</th>
+            <th style="padding: 1rem 0.5rem; text-align: right; color: var(--color-text-secondary);">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% recentTransactions.forEach(tx => { %>
+            <tr style="border-bottom: 1px solid var(--color-border);">
+              <td>
+                <a href="/transactions/<%= tx.id %>" style="color: var(--color-primary); text-decoration: none; font-weight: 600;"><%= tx.invoice_number %></a>
+              </td>
+              <td>
+                <% 
+                  const date = new Date(tx.created_at);
+                  const timeStr = date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+                  const dateStr = date.toLocaleDateString('id-ID', { day: '2-digit', month: 'short' });
+                %>
+                <%= dateStr %>, <%= timeStr %>
+              </td>
+              <td class="text-right">
+                <strong>Rp <%= new Intl.NumberFormat('id-ID').format(tx.total_amount) %></strong>
+              </td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  <% } else { %>
+    <div class="empty-state">
+      <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">📭</div>
+      <p>Belum ada transaksi saat ini.</p>
+    </div>
+  <% } %>
+</div>
+
+<%- include('partials/footer') %>

@@ -1,0 +1,291 @@
+<%- include('../partials/header') %>
+
+<div class="dashboard-header" style="margin-bottom: 2rem;">
+  <h1 class="page-title">Laporan Penjualan</h1>
+  <p style="color: var(--color-text-secondary);">Ringkasan aktivitas penjualan toko Anda.</p>
+</div>
+
+<!-- Stats Cards -->
+<div class="grid grid-4 mb-lg">
+  <!-- Penjualan Hari Ini -->
+  <div class="card stat-card">
+    <h3 class="stat-label">Penjualan Hari Ini</h3>
+    <div class="stat-value">
+      Rp <%= new Intl.NumberFormat('id-ID').format(todayStats.total) %>
+    </div>
+    <div class="stat-subtext">
+      <%= todayStats.count %> Transaksi
+    </div>
+  </div>
+
+  <!-- Penjualan Minggu Ini -->
+  <div class="card stat-card">
+    <h3 class="stat-label">Penjualan 7 Hari Terakhir</h3>
+    <div class="stat-value">
+      Rp <%= new Intl.NumberFormat('id-ID').format(weekStats.total) %>
+    </div>
+    <div class="stat-subtext">
+      <%= weekStats.count %> Transaksi
+    </div>
+  </div>
+
+  <!-- Penjualan Bulan Ini -->
+  <div class="card stat-card">
+    <h3 class="stat-label">Penjualan Bulan Ini</h3>
+    <div class="stat-value">
+      Rp <%= new Intl.NumberFormat('id-ID').format(monthStats.total) %>
+    </div>
+    <div class="stat-subtext">
+      <%= monthStats.count %> Transaksi
+    </div>
+  </div>
+
+  <!-- Total Keseluruhan -->
+  <div class="card stat-card">
+    <h3 class="stat-label">Total Keseluruhan</h3>
+    <div class="stat-value">
+      Rp <%= new Intl.NumberFormat('id-ID').format(totalStats.total) %>
+    </div>
+    <div class="stat-subtext">
+      <%= totalStats.count %> Transaksi
+    </div>
+  </div>
+</div>
+
+<!-- Tabel Laporan Harian -->
+<div class="card">
+  <div class="page-header mb-sm">
+    <h2 class="page-title" style="font-size: 1.25rem;">Laporan Penjualan Harian</h2>
+  </div>
+  
+  <% if (dailyReport && dailyReport.length > 0) { %>
+    <div class="table-wrapper">
+      <table class="table" style="width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr style="border-bottom: 2px solid var(--color-border); text-align: left;">
+            <th style="padding: 1rem 0.5rem; color: var(--color-text-secondary);">Tanggal</th>
+            <th style="padding: 1rem 0.5rem; text-align: center; color: var(--color-text-secondary);">Jumlah Transaksi</th>
+            <th style="padding: 1rem 0.5rem; text-align: right; color: var(--color-text-secondary);">Total Penjualan</th>
+            <th style="padding: 1rem 0.5rem; text-align: right; color: var(--color-text-secondary);">Selisih Toleransi</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% dailyReport.forEach(report => { %>
+            <tr style="border-bottom: 1px solid var(--color-border);">
+              <td style="padding: 1rem 0.5rem; font-weight: 500;">
+                <% 
+                  const d = new Date(report.tanggal);
+                  const dateStr = d.toLocaleDateString('id-ID', { weekday: 'long', day: '2-digit', month: 'short', year: 'numeric' });
+                %>
+                <%= dateStr %>
+              </td>
+              <td style="padding: 1rem 0.5rem; text-align: center;">
+                <%= report.jumlah_transaksi %>
+              </td>
+              <td style="padding: 1rem 0.5rem; text-align: right; font-weight: bold;">
+                Rp <%= new Intl.NumberFormat('id-ID').format(report.total_penjualan) %>
+              </td>
+              <td style="padding: 1rem 0.5rem; text-align: right;">
+                <% 
+                  const selisihBersih = (report.tol_lebih || 0) - (report.tol_kurang || 0);
+                  const isMin = selisihBersih < 0;
+                %>
+                <span style="font-weight: bold; color: <%= isMin ? 'var(--color-danger)' : (selisihBersih > 0 ? 'var(--color-success)' : 'var(--color-text-secondary)') %>">
+                  <%= selisihBersih === 0 ? 'Rp 0' : (isMin ? '-' : '+') + 'Rp ' + new Intl.NumberFormat('id-ID').format(Math.abs(selisihBersih)) %>
+                </span>
+                <% if (report.tol_count > 0) { %>
+                  <div style="font-size: 0.75rem; color: var(--color-text-secondary); margin-top: 0.25rem;"><%= report.tol_count %> transaksi</div>
+                <% } %>
+              </td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  <% } else { %>
+    <div class="empty-state">
+      <p>Belum ada data penjualan harian.</p>
+    </div>
+  <% } %>
+</div>
+
+<!-- Laporan Bulanan (Tahap 4) -->
+<div class="card mb-lg">
+  <div class="page-header mb-sm" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+    <h2 class="page-title" style="font-size: 1.25rem; margin: 0;">Laporan Penjualan Bulanan</h2>
+    
+    <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+      <input type="month" id="monthSelector" class="input" style="width: auto;">
+      <button type="button" id="btnShowReport" class="btn btn-primary">Tampilkan Laporan</button>
+      <button type="button" id="btnExportExcel" class="btn btn-success" disabled>Export Excel</button>
+    </div>
+  </div>
+
+  <div id="monthlySummaryContainer" style="display: none;">
+    <div class="grid grid-3 mb-sm" style="gap: 1rem;">
+      <div class="card stat-card" style="background-color: #f8fafc;">
+        <h3 class="stat-label">Total Penjualan</h3>
+        <div class="stat-value" id="summaryTotalPenjualan" style="color: var(--color-primary);">Rp 0</div>
+      </div>
+      
+      <div class="card stat-card" style="background-color: #f8fafc;">
+        <h3 class="stat-label">Jumlah Transaksi</h3>
+        <div class="stat-value" id="summaryJumlahTransaksi">0</div>
+      </div>
+      
+      <div class="card stat-card" style="background-color: #f8fafc;">
+        <h3 class="stat-label">Produk Terjual</h3>
+        <div class="stat-value" id="summaryProdukTerjual">0</div>
+      </div>
+      
+      <div class="card stat-card" style="background-color: #f8fafc;">
+        <h3 class="stat-label">Total Harga Modal</h3>
+        <div class="stat-value" id="summaryTotalModal" style="color: var(--color-text);">Rp 0</div>
+      </div>
+      
+      <div class="card stat-card" style="background-color: #f8fafc;">
+        <h3 class="stat-label">Total Diskon</h3>
+        <div class="stat-value" id="summaryTotalDiskon" style="color: var(--color-danger);">Rp 0</div>
+      </div>
+      
+      <div class="card stat-card" style="background-color: #f8fafc;">
+        <h3 class="stat-label">Total Laba Penjualan</h3>
+        <div class="stat-value" id="summaryTotalLaba" style="color: var(--color-success);">Rp 0</div>
+      </div>
+    </div>
+    
+    <div style="margin-top: 2rem; display: flex; flex-wrap: wrap; gap: 2rem;">
+      <div style="flex: 1; min-width: 300px;">
+        <h3 style="margin-bottom: 1rem; border-bottom: 2px solid var(--color-border); padding-bottom: 0.5rem;">Ringkasan Metode Pembayaran</h3>
+        <div id="paymentSummaryContainer" style="display: flex; flex-direction: column; gap: 0.5rem;">
+          <!-- Akan diisi via JavaScript -->
+        </div>
+      </div>
+      
+      <div style="flex: 1; min-width: 300px;">
+        <h3 style="margin-bottom: 1rem; border-bottom: 2px solid var(--color-border); padding-bottom: 0.5rem;">Toleransi Pembayaran</h3>
+        <div class="card" style="background: var(--color-bg); padding: 1.25rem;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 0.75rem;">
+            <span style="color: var(--color-text-secondary);">Jumlah Transaksi</span>
+            <strong id="summaryTolCount">0</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 0.75rem;">
+            <span style="color: var(--color-text-secondary);">Total Kekurangan</span>
+            <strong id="summaryTolKurang" style="color: var(--color-danger);">Rp 0</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 0.75rem;">
+            <span style="color: var(--color-text-secondary);">Total Kelebihan</span>
+            <strong id="summaryTolLebih" style="color: var(--color-success);">Rp 0</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding-top: 0.75rem; border-top: 1px dashed var(--color-border); font-size: 1.1rem;">
+            <span style="font-weight: 500;">Selisih Bersih</span>
+            <strong id="summaryTolBersih">Rp 0</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="monthlySummaryEmpty" style="display: none;" class="empty-state">
+    <p>Belum ada data untuk bulan yang dipilih.</p>
+  </div>
+</div>
+
+<script>
+  // Set default month to current month
+  const now = new Date();
+  const defaultMonth = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+  document.getElementById('monthSelector').value = defaultMonth;
+
+  function formatRupiah(number) {
+    return 'Rp ' + new Intl.NumberFormat('id-ID').format(number);
+  }
+
+  document.getElementById('btnShowReport').addEventListener('click', async () => {
+    const val = document.getElementById('monthSelector').value;
+    if (!val) {
+      alert('Silakan pilih bulan terlebih dahulu.');
+      return;
+    }
+    const [year, month] = val.split('-');
+
+    try {
+      const response = await fetch(`/reports/monthly?year=${year}&month=${month}`);
+      const data = await response.json();
+
+      if (data.success) {
+        const s = data.summary;
+        if (s && s.jumlah_transaksi > 0) {
+          document.getElementById('monthlySummaryEmpty').style.display = 'none';
+          document.getElementById('monthlySummaryContainer').style.display = 'block';
+
+          document.getElementById('summaryTotalPenjualan').textContent = formatRupiah(s.total_penjualan);
+          document.getElementById('summaryJumlahTransaksi').textContent = s.jumlah_transaksi;
+          document.getElementById('summaryProdukTerjual').textContent = s.jumlah_produk_terjual;
+          document.getElementById('summaryTotalModal').textContent = formatRupiah(s.total_harga_modal);
+          document.getElementById('summaryTotalDiskon').textContent = formatRupiah(s.total_diskon);
+          document.getElementById('summaryTotalLaba').textContent = formatRupiah(s.total_laba);
+
+          // Update Toleransi Summary
+          const tolKurang = s.tol_kurang || 0;
+          const tolLebih = s.tol_lebih || 0;
+          const tolBersih = tolLebih - tolKurang;
+          
+          document.getElementById('summaryTolCount').textContent = s.tol_count || 0;
+          document.getElementById('summaryTolKurang').textContent = formatRupiah(tolKurang);
+          document.getElementById('summaryTolLebih').textContent = formatRupiah(tolLebih);
+          
+          const bersihEl = document.getElementById('summaryTolBersih');
+          bersihEl.textContent = `${tolBersih === 0 ? '' : (tolBersih < 0 ? '-' : '+')}${formatRupiah(Math.abs(tolBersih))}`;
+          bersihEl.style.color = tolBersih < 0 ? 'var(--color-danger)' : (tolBersih > 0 ? 'var(--color-success)' : 'var(--color-text)');
+
+          // Populate payment methods summary
+          const payContainer = document.getElementById('paymentSummaryContainer');
+          payContainer.innerHTML = '';
+          let totalPay = 0;
+          if (data.paymentSummary && data.paymentSummary.length > 0) {
+            data.paymentSummary.forEach(ps => {
+              totalPay += ps.total_amount;
+              const methodLabel = ps.payment_method === 'cash' ? 'Tunai' : (ps.payment_method === 'qris' ? 'QRIS' : 'Transfer');
+              payContainer.innerHTML += `
+                <div style="display: flex; justify-content: space-between; padding: 0.5rem; background: #f8fafc; border-radius: var(--radius-sm);">
+                  <span>${methodLabel}</span>
+                  <strong>${formatRupiah(ps.total_amount)}</strong>
+                </div>
+              `;
+            });
+            payContainer.innerHTML += `
+              <div style="display: flex; justify-content: space-between; padding: 0.5rem; border-top: 2px dashed var(--color-border); margin-top: 0.5rem;">
+                <strong>Total Pembayaran</strong>
+                <strong style="color: var(--color-primary);">${formatRupiah(totalPay)}</strong>
+              </div>
+            `;
+          } else {
+            payContainer.innerHTML = '<p style="color: var(--color-text-secondary);">Tidak ada data pembayaran.</p>';
+          }
+
+          document.getElementById('btnExportExcel').disabled = false;
+        } else {
+          document.getElementById('monthlySummaryContainer').style.display = 'none';
+          document.getElementById('monthlySummaryEmpty').style.display = 'block';
+          document.getElementById('btnExportExcel').disabled = true;
+        }
+      } else {
+        alert(data.error || 'Gagal memuat laporan');
+      }
+    } catch (error) {
+      console.error(error);
+      alert('Terjadi kesalahan saat memuat data laporan.');
+    }
+  });
+
+  document.getElementById('btnExportExcel').addEventListener('click', () => {
+    const val = document.getElementById('monthSelector').value;
+    if (!val) return;
+    const [year, month] = val.split('-');
+    
+    // Redirect to export endpoint
+    window.location.href = `/reports/export/monthly?year=${year}&month=${month}`;
+  });
+</script>
+
+<%- include('../partials/footer') %>

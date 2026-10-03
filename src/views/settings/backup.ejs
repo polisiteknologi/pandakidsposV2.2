@@ -1,0 +1,51 @@
+<%- include('../partials/header') %>
+
+<div class="page-header" style="margin-bottom: 2rem;">
+  <h1 class="page-title"><%= title %></h1>
+</div>
+
+<% if (typeof req !== 'undefined' && req.query && req.query.success) { %>
+  <div class="alert alert-success" style="color: white; background-color: #10b981; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem;">
+    <%= req.query.success %>
+  </div>
+<% } %>
+
+<% if (typeof req !== 'undefined' && req.query && req.query.error) { %>
+  <div class="alert alert-danger" style="color: white; background-color: #ef4444; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem;">
+    <%= req.query.error %>
+  </div>
+<% } %>
+
+<div style="display: grid; grid-template-columns: 1fr; gap: 2rem; max-width: 800px;">
+  
+  <!-- Backup Section -->
+  <div class="card">
+    <h3 style="margin-top: 0; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid #e2e8f0;">BACKUP DATA</h3>
+    
+    <div style="margin-bottom: 1.5rem;">
+      <p style="color: #64748b; margin-bottom: 0.5rem;">Backup terakhir:</p>
+      <strong style="font-size: 1.1rem;"><%= lastBackupDate %></strong>
+    </div>
+
+    <form action="/settings/backup-restore/create" method="POST">
+      <button type="submit" class="btn btn-primary">Backup Sekarang</button>
+    </form>
+  </div>
+
+  <!-- Restore Section -->
+  <div class="card">
+    <h3 style="margin-top: 0; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid #e2e8f0;">RESTORE DATA</h3>
+    
+    <p style="color: #475569; margin-bottom: 1.5rem;">Pilih file backup (.pandabackup) untuk dipulihkan:</p>
+    
+    <form action="/settings/backup-restore/upload" method="POST" enctype="multipart/form-data">
+      <div class="form-group" style="margin-bottom: 1.5rem;">
+        <input type="file" name="backup_file" accept=".pandabackup" class="form-control" required style="padding: 0.5rem;">
+      </div>
+      
+      <button type="submit" class="btn btn-secondary">Validasi Backup</button>
+    </form>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

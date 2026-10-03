@@ -1,0 +1,46 @@
+<%- include('../partials/header') %>
+
+<div class="page-header" style="margin-bottom: 2rem;">
+  <div style="display: flex; align-items: center; gap: 1rem;">
+    <a href="/transactions/delete-period" class="btn btn-outline" style="padding: 0.25rem 0.5rem;">&larr; Kembali</a>
+    <h1 class="page-title"><%= title %></h1>
+  </div>
+</div>
+
+<div class="card" style="max-width: 500px; margin: 0 auto; text-align: center;">
+  <h3 style="color: #ef4444; margin-top: 0;">PERINGATAN</h3>
+  
+  <div style="background: #f8fafc; padding: 1.5rem; border-radius: 4px; margin: 1.5rem 0; text-align: left;">
+    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+      <span style="color: #64748b;">Periode:</span>
+      <strong><%= new Date(date_start).toLocaleDateString('id-ID') %> - <%= new Date(date_end).toLocaleDateString('id-ID') %></strong>
+    </div>
+    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+      <span style="color: #64748b;">Jumlah transaksi:</span>
+      <strong><%= count %></strong>
+    </div>
+    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+      <span style="color: #64748b;">Total penjualan:</span>
+      <strong>Rp <%= total.toLocaleString('id-ID') %></strong>
+    </div>
+  </div>
+
+  <p style="font-size: 0.95rem; color: #475569; margin-bottom: 1.5rem;">
+    Semua transaksi pada periode ini akan dihapus.<br>
+    Stok akan dikembalikan berdasarkan item transaksi yang dihapus.<br><br>
+    <strong style="color: #b91c1c;">Tindakan ini tidak dapat dibatalkan tanpa backup. Backup otomatis akan diintegrasikan pada Tahap 6 Backup & Restore.</strong>
+  </p>
+
+  <form action="/transactions/delete-period" method="POST" style="display: flex; gap: 1rem; justify-content: center;">
+    <input type="hidden" name="date_start" value="<%= date_start %>">
+    <input type="hidden" name="date_end" value="<%= date_end %>">
+    <input type="hidden" name="confirm" value="1">
+    
+    <a href="/transactions/delete-period" class="btn btn-secondary" style="flex: 1; text-align: center;">Batal</a>
+    <button type="submit" class="btn btn-danger" style="flex: 1;" <%= count === 0 ? 'disabled' : '' %>>
+      Hapus Semua Transaksi
+    </button>
+  </form>
+</div>
+
+<%- include('../partials/footer') %>

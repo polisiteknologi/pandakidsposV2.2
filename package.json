@@ -1,0 +1,29 @@
+{
+  "name": "pandakidspos",
+  "version": "1.0.0",
+  "description": "PandaKids POS - Aplikasi kasir sederhana untuk toko pakaian anak & perlengkapan ibu melahirkan",
+  "main": "src/app.js",
+  "scripts": {
+    "start": "node src/app.js",
+    "dev": "node --watch src/app.js"
+  },
+  "keywords": [
+    "pos",
+    "kasir",
+    "toko"
+  ],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "better-sqlite3": "^13.0.3",
+    "csv-parser": "^3.2.1",
+    "dotenv": "^18.0.5",
+    "ejs": "^3.1.10",
+    "express": "^5.1.0",
+    "express-session": "^1.19.0",
+    "multer": "^2.4.0",
+    "xlsx": "^0.18.5"
+  }
+}

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %></title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    body {
+      background-color: var(--color-bg-secondary);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+    }
+    .login-card {
+      background: var(--color-bg);
+      padding: 2rem;
+      border-radius: 0.5rem;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 400px;
+    }
+    .login-header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    .login-header h1 {
+      margin: 0;
+      color: var(--color-primary);
+    }
+    .login-header p {
+      color: var(--color-text-secondary);
+      margin-top: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-card">
+    <div class="login-header">
+      <h1>🐼 PandaKids POS</h1>
+      <p>Silakan masuk untuk melanjutkan</p>
+    </div>
+
+    <% if (error) { %>
+      <div class="alert alert-danger" style="color: white; background-color: #ef4444; padding: 1rem; border-radius: 0.25rem; margin-bottom: 1rem;">
+        <%= error %>
+      </div>
+    <% } %>
+
+    <form action="/auth/login" method="POST">
+      <div class="form-group">
+        <label for="username">Username</label>
+        <input type="text" id="username" name="username" class="form-control" required autofocus>
+      </div>
+      <div class="form-group" style="margin-top: 1rem;">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" class="form-control" required>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block" style="width: 100%; margin-top: 2rem;">Login</button>
+    </form>
+  </div>
+</body>
+</html>

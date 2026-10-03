@@ -1,0 +1,75 @@
+<%- include('../partials/header') %>
+
+<div class="page-header">
+  <h1 class="page-title">Preview Import Produk</h1>
+  <a href="/products/import" class="btn btn-secondary">Batal & Kembali</a>
+</div>
+
+<div class="card">
+  <div class="card-body">
+    <% if (hasError) { %>
+      <div class="alert alert-error">
+        Terdapat baris dengan data tidak valid. Baris tersebut tidak akan di-import.
+        Silakan periksa pesan error di tabel.
+      </div>
+    <% } %>
+
+    <p>Data berikut siap di-import. Produk yang kodenya sudah ada di database akan dilewati (tidak di-update).</p>
+
+    <div class="table-wrapper" style="margin: 20px 0;">
+      <table>
+        <thead>
+          <tr>
+            <th>Baris</th>
+            <th>Kode</th>
+            <th>Nama Produk</th>
+            <th>Kategori</th>
+            <th class="text-right">Harga Modal</th>
+            <th class="text-center">Stok</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% preview.forEach(item => { %>
+            <tr class="<%= item.errors.length > 0 ? (item.existing ? 'row-warning' : 'row-error') : 'row-success' %>">
+              <td><%= item.rowNum %></td>
+              <td><%= item.kode || '-' %></td>
+              <td><%= item.nama || '-' %></td>
+              <td><%= item.kategori %></td>
+              <td class="text-right"><%= isNaN(item.harga_modal) ? '-' : 'Rp ' + item.harga_modal.toLocaleString('id-ID') %></td>
+              <td class="text-center"><%= isNaN(item.stok) ? '-' : item.stok %></td>
+              <td>
+                <% if (item.errors.length > 0) { %>
+                  <ul style="margin: 0; padding-left: 15px; color: #d32f2f; font-size: 0.9em;">
+                    <% item.errors.forEach(err => { %>
+                      <li><%= err %></li>
+                    <% }) %>
+                  </ul>
+                <% } else { %>
+                  <span style="color: #388e3c;">Siap Import</span>
+                <% } %>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+
+    <form action="/products/import/confirm" method="POST">
+      <input type="hidden" name="dataEncoded" value="<%= validDataEncoded %>">
+      
+      <div class="form-actions">
+        <a href="/products/import" class="btn btn-secondary">Batal</a>
+        <button type="submit" class="btn btn-primary">Konfirmasi & Import Data Valid</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<style>
+  .row-error { background-color: #ffebee; }
+  .row-warning { background-color: #fff8e1; }
+  .row-success { background-color: #f1f8e9; }
+</style>
+
+<%- include('../partials/footer') %>

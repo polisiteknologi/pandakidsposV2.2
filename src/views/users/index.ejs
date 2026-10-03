@@ -1,0 +1,61 @@
+<%- include('../partials/header') %>
+
+<div class="page-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+  <div>
+    <h1 class="page-title">Manajemen Pengguna</h1>
+    <p style="color: var(--color-text-secondary);">Kelola akun pengguna dan hak akses</p>
+  </div>
+  <a href="/users/create" class="btn btn-primary">+ Tambah Pengguna</a>
+</div>
+
+<% if (error) { %>
+  <div class="alert alert-danger" style="color: white; background-color: #ef4444; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem;"><%= error %></div>
+<% } %>
+
+<% if (success) { %>
+  <div class="alert alert-success" style="color: white; background-color: #10b981; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem;">
+    <% if (success === 'added') { %> Pengguna berhasil ditambahkan. <% } %>
+    <% if (success === 'updated') { %> Pengguna berhasil diperbarui. <% } %>
+  </div>
+<% } %>
+
+<div class="card">
+  <div class="table-wrapper">
+    <table class="table" style="width: 100%; border-collapse: collapse;">
+      <thead>
+        <tr style="border-bottom: 2px solid var(--color-border); text-align: left;">
+          <th style="padding: 1rem 0.5rem;">Username</th>
+          <th style="padding: 1rem 0.5rem;">Nama</th>
+          <th style="padding: 1rem 0.5rem;">Role</th>
+          <th style="padding: 1rem 0.5rem;">Status</th>
+          <th style="padding: 1rem 0.5rem; text-align: right;">Aksi</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% users.forEach(u => { %>
+          <tr style="border-bottom: 1px solid var(--color-border);">
+            <td style="padding: 1rem 0.5rem; font-weight: 500;"><%= u.username %></td>
+            <td style="padding: 1rem 0.5rem;"><%= u.nama %></td>
+            <td style="padding: 1rem 0.5rem;">
+              <span style="background-color: <%= u.role === 'ADMIN' ? '#cffafe' : '#fef08a' %>; color: <%= u.role === 'ADMIN' ? '#0891b2' : '#ca8a04' %>; padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-size: 0.8rem; font-weight: bold;">
+                <%= u.role %>
+              </span>
+            </td>
+            <td style="padding: 1rem 0.5rem;">
+              <% if (u.is_active) { %>
+                <span style="color: #10b981;">Aktif</span>
+              <% } else { %>
+                <span style="color: #ef4444;">Nonaktif</span>
+              <% } %>
+            </td>
+            <td style="padding: 1rem 0.5rem; text-align: right;">
+              <a href="/users/<%= u.id %>/edit" class="btn btn-sm btn-outline">Edit</a>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

@@ -1,0 +1,13 @@
+# Dependencies
+node_modules/
+
+# Local database and backups
+data/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log

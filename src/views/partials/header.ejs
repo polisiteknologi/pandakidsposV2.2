@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>
+    <%= title %>
+  </title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .user-info { display: flex; align-items: center; gap: 1rem; margin-left: auto; }
+    .user-badge { display: flex; flex-direction: column; text-align: right; font-size: 0.85rem; }
+    .user-name { font-weight: bold; }
+    .user-role { color: var(--color-text-secondary); text-transform: uppercase; font-size: 0.75rem; }
+    .btn-logout { background-color: transparent; border: 1px solid var(--color-border); padding: 0.25rem 0.75rem; border-radius: 0.25rem; text-decoration: none; color: var(--color-text); font-size: 0.85rem; }
+    .btn-logout:hover { background-color: var(--color-bg-secondary); }
+  </style>
+</head>
+
+<body>
+  <header class="header">
+    <div class="header-inner" style="display: flex; align-items: center; width: 100%;">
+      <a href="/" class="logo" style="margin-right: 1.5rem;">🐼 PandaKids POS</a>
+      
+      <% if (typeof user !== 'undefined' && user) { %>
+        <% const path = typeof currentPath !== 'undefined' ? currentPath : ''; %>
+        <% const isUsersActive = path.startsWith('/users'); %>
+        <% const isBackupActive = path.startsWith('/settings'); %>
+        <% const isSettingsActive = isUsersActive || isBackupActive; %>
+        <nav class="nav" style="margin: 0;">
+          <% if (user.role === 'ADMIN') { %>
+            <a href="/" class="nav-link <%= path === '/' ? 'active' : '' %>">Dashboard</a>
+          <% } %>
+          <a href="/cashier" class="nav-link <%= path.startsWith('/cashier') ? 'active' : '' %>">Kasir</a>
+          <% if (user.role === 'ADMIN') { %>
+            <a href="/products" class="nav-link <%= path.startsWith('/products') ? 'active' : '' %>">Produk</a>
+            <a href="/transactions" class="nav-link <%= path.startsWith('/transactions') ? 'active' : '' %>">Riwayat</a>
+            <a href="/reports" class="nav-link <%= path.startsWith('/reports') ? 'active' : '' %>">Laporan</a>
+            
+            <div class="nav-dropdown <%= isSettingsActive ? 'open active' : '' %>" id="settingsDropdown">
+              <button type="button" class="dropdown-toggle <%= isSettingsActive ? 'active' : '' %>" id="settingsToggle" aria-haspopup="true" aria-expanded="<%= isSettingsActive ? 'true' : 'false' %>">
+                ⚙️ Settings
+                <svg class="dropdown-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </button>
+              <div class="dropdown-menu" id="settingsMenu">
+                <a href="/users" class="dropdown-item <%= isUsersActive ? 'active' : '' %>">
+                  👤 Pengguna
+                </a>
+                <a href="/settings/backup-restore" class="dropdown-item <%= isBackupActive ? 'active' : '' %>">
+                  💾 Backup & Restore
+                </a>
+              </div>
+            </div>
+          <% } %>
+        </nav>
+        
+        <div class="user-info">
+          <div class="user-badge">
+            <span class="user-name"><%= user.role === 'ADMIN' ? 'Admin' : 'Kasir' %>: <%= user.nama %></span>
+            <span class="user-role">Role: <%= user.role %></span>
+          </div>
+          <a href="/auth/logout" class="btn-logout">Logout</a>
+        </div>
+
+        <script>
+          document.addEventListener('DOMContentLoaded', function() {
+            const dropdown = document.getElementById('settingsDropdown');
+            const toggle = document.getElementById('settingsToggle');
+            if (dropdown && toggle) {
+              const pathname = window.location.pathname;
+              if (pathname.startsWith('/users') || pathname.startsWith('/settings')) {
+                dropdown.classList.add('open');
+                toggle.classList.add('active');
+                toggle.setAttribute('aria-expanded', 'true');
+              }
+
+              toggle.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const isOpen = dropdown.classList.toggle('open');
+                toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+              });
+
+              document.addEventListener('click', function(e) {
+                if (!dropdown.contains(e.target)) {
+                  dropdown.classList.remove('open');
+                  toggle.setAttribute('aria-expanded', 'false');
+                }
+              });
+            }
+          });
+        </script>
+      <% } %>
+    </div>
+  </header>
+  <main class="main">

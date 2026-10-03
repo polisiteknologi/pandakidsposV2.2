@@ -1,0 +1,49 @@
+<%- include('../partials/header') %>
+
+<div class="page-header" style="margin-bottom: 2rem;">
+  <h1 class="page-title"><%= title %></h1>
+</div>
+
+<div class="card" style="max-width: 600px; margin: 0 auto; text-align: center;">
+  <h3 style="color: #10b981; margin-top: 0; margin-bottom: 1.5rem;">BACKUP DITEMUKAN</h3>
+  
+  <div style="background: #f8fafc; padding: 1.5rem; border-radius: 4px; margin-bottom: 2rem; text-align: left;">
+    <div style="display: flex; justify-content: space-between; margin-bottom: 0.75rem;">
+      <span style="color: #64748b;">Tanggal Backup:</span>
+      <strong><%= new Date(summary.created_at).toLocaleString('id-ID') %></strong>
+    </div>
+    <div style="display: flex; justify-content: space-between; margin-bottom: 0.75rem;">
+      <span style="color: #64748b;">Versi:</span>
+      <strong>PandaKids POS <%= summary.app_version %></strong>
+    </div>
+    <div style="display: flex; justify-content: space-between; margin-bottom: 0.75rem;">
+      <span style="color: #64748b;">Produk:</span>
+      <strong><%= summary.products_count.toLocaleString('id-ID') %></strong>
+    </div>
+    <div style="display: flex; justify-content: space-between;">
+      <span style="color: #64748b;">Transaksi:</span>
+      <strong><%= summary.transactions_count.toLocaleString('id-ID') %></strong>
+    </div>
+  </div>
+
+  <div style="text-align: center; margin-bottom: 2rem;">
+    <h4 style="color: #ef4444; margin-bottom: 0.5rem;">PERINGATAN:</h4>
+    <p style="color: #475569; margin: 0; line-height: 1.5;">
+      Restore akan mengganti kondisi data saat ini dengan data dari backup.<br>
+      Pastikan Anda memilih file yang benar.<br><br>
+      <strong style="color: #0f172a;">Backup kondisi saat ini akan dibuat secara otomatis sebelum restore.</strong>
+    </p>
+  </div>
+
+  <div style="display: flex; gap: 1rem; justify-content: center;">
+    <form action="/settings/backup-restore/cancel" method="POST" style="flex: 1;">
+      <button type="submit" class="btn btn-secondary" style="width: 100%;">Batal</button>
+    </form>
+    
+    <form action="/settings/backup-restore/restore" method="POST" style="flex: 1;" onsubmit="this.querySelector('button').disabled=true; this.querySelector('button').innerHTML='Memproses...'">
+      <button type="submit" class="btn btn-danger" style="width: 100%;">Lanjutkan Restore</button>
+    </form>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

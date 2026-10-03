@@ -1,0 +1,132 @@
+<%- include('../partials/header') %>
+
+<div class="page-header">
+  <h1 class="page-title">Daftar Produk</h1>
+  <div class="header-actions">
+    <a href="/products/import" class="btn btn-secondary">Import Produk</a>
+    <a href="/products/create" class="btn btn-primary">+ Tambah Produk</a>
+  </div>
+</div>
+
+<% if (locals.success || (typeof require !== 'undefined' && false)) { %>
+<% } %>
+
+<% const urlParams = typeof require !== 'undefined' ? {} : {}; %>
+
+<form class="search-bar" action="/products" method="GET">
+  <input
+    type="text"
+    name="search"
+    placeholder="Cari nama, kode, atau kategori..."
+    value="<%= search %>"
+    autocomplete="off"
+  >
+  <button type="submit" class="btn btn-secondary">Cari</button>
+  <% if (search) { %>
+    <a href="/products" class="btn btn-secondary">Reset</a>
+  <% } %>
+</form>
+
+<div class="table-wrapper">
+  <% if (products.length === 0) { %>
+    <div class="empty-state">
+      <p>
+        <% if (search) { %>
+          Tidak ada produk yang cocok dengan "<strong><%= search %></strong>"
+        <% } else { %>
+          Belum ada produk. Tambahkan produk pertama Anda!
+        <% } %>
+      </p>
+      <% if (!search) { %>
+        <div class="actions">
+          <a href="/products/import" class="btn btn-secondary">Import Produk</a>
+          <a href="/products/create" class="btn btn-primary">+ Tambah Produk</a>
+        </div>
+      <% } %>
+    </div>
+  <% } else { %>
+    <table>
+      <thead>
+        <tr>
+          <th>Kode</th>
+          <th>Nama Produk</th>
+          <th>Kategori</th>
+          <th class="text-right">Harga Modal</th>
+          <th class="text-right">Harga Jual</th>
+          <th class="text-center">Stok</th>
+          <th>Aksi</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% products.forEach(product => { %>
+          <tr>
+            <td><%= product.sku || '-' %></td>
+            <td><strong><%= product.name %></strong></td>
+            <td><%= product.category %></td>
+            <td class="text-right">Rp <%= Number(product.base_price).toLocaleString('id-ID') %></td>
+            <td class="text-right">Rp <%= Number(product.price).toLocaleString('id-ID') %></td>
+            <td class="text-center">
+              <span class="stock-badge <%= product.stock === 0 ? 'stock-empty' : product.stock <= 5 ? 'stock-low' : 'stock-ok' %>">
+                <%= product.stock %>
+              </span>
+            </td>
+            <td>
+              <div class="actions">
+                <a href="/products/<%= product.id %>/edit" class="btn btn-secondary btn-sm">Edit</a>
+                <form class="delete-form" action="/products/<%= product.id %>/delete" method="POST" onsubmit="return confirm('Hapus produk <%= product.name %>?')">
+                  <button type="submit" class="btn btn-danger btn-sm">Hapus</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  <% } %>
+</div>
+
+<script>
+  // Tampilkan notifikasi dari URL params
+  (function() {
+    const params = new URLSearchParams(window.location.search);
+    const success = params.get('success');
+    const error = params.get('error');
+    const count = params.get('count');
+
+    if (success || error) {
+      const messages = {
+        added: 'Produk berhasil ditambahkan!',
+        updated: 'Produk berhasil diperbarui!',
+        deleted: 'Produk berhasil dihapus!',
+        imported: `${count} Produk berhasil diimport!`
+      };
+
+      const alert = document.createElement('div');
+      if (success) {
+        alert.className = 'alert alert-success';
+        alert.textContent = messages[success] || 'Berhasil!';
+      } else {
+        alert.className = 'alert alert-error';
+        alert.textContent = decodeURIComponent(error);
+      }
+
+      const main = document.querySelector('.main');
+      main.insertBefore(alert, main.firstChild);
+
+      // Hapus parameter dari URL tanpa reload
+      const url = new URL(window.location);
+      url.searchParams.delete('success');
+      url.searchParams.delete('error');
+      window.history.replaceState({}, '', url);
+
+      // Auto-hide setelah 3 detik
+      setTimeout(() => {
+        alert.style.transition = 'opacity 300ms';
+        alert.style.opacity = '0';
+        setTimeout(() => alert.remove(), 300);
+      }, 3000);
+    }
+  })();
+</script>
+
+<%- include('../partials/footer') %>

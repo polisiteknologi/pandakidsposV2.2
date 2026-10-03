@@ -1,0 +1,56 @@
+<%- include('../partials/header') %>
+
+<div class="page-header" style="margin-bottom: 2rem;">
+  <div style="display: flex; align-items: center; gap: 1rem;">
+    <a href="/users" class="btn btn-outline" style="padding: 0.25rem 0.5rem;">&larr; Kembali</a>
+    <h1 class="page-title"><%= userItem ? 'Edit Pengguna' : 'Tambah Pengguna' %></h1>
+  </div>
+</div>
+
+<% if (error) { %>
+  <div class="alert alert-danger" style="color: white; background-color: #ef4444; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem;"><%= error %></div>
+<% } %>
+
+<div class="card" style="max-width: 600px; margin: 0 auto;">
+  <form action="<%= userItem ? `/users/${userItem.id}` : '/users' %>" method="POST">
+    
+    <div class="form-group" style="margin-bottom: 1rem;">
+      <label for="username">Username <span style="color: red;">*</span></label>
+      <input type="text" id="username" name="username" class="form-control" value="<%= userItem ? userItem.username : '' %>" required>
+    </div>
+    
+    <div class="form-group" style="margin-bottom: 1rem;">
+      <label for="nama">Nama Lengkap <span style="color: red;">*</span></label>
+      <input type="text" id="nama" name="nama" class="form-control" value="<%= userItem ? userItem.nama : '' %>" required>
+    </div>
+    
+    <div class="form-group" style="margin-bottom: 1rem;">
+      <label for="password">Password <%= userItem ? '(Kosongkan jika tidak ingin mengubah)' : '<span style="color: red;">*</span>' %></label>
+      <input type="password" id="password" name="password" class="form-control" <%= !userItem ? 'required' : '' %>>
+    </div>
+    
+    <div class="form-group" style="margin-bottom: 1rem;">
+      <label for="role">Role <span style="color: red;">*</span></label>
+      <select id="role" name="role" class="form-control" required>
+        <option value="ADMIN" <%= userItem && userItem.role === 'ADMIN' ? 'selected' : '' %>>ADMIN</option>
+        <option value="KASIR" <%= userItem && userItem.role === 'KASIR' ? 'selected' : '' %>>KASIR</option>
+      </select>
+    </div>
+    
+    <% if (userItem) { %>
+      <div class="form-group" style="margin-bottom: 2rem;">
+        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+          <input type="checkbox" name="is_active" value="1" <%= userItem.is_active ? 'checked' : '' %>>
+          <span>Akun Aktif</span>
+        </label>
+      </div>
+    <% } %>
+
+    <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 2rem;">
+      <a href="/users" class="btn btn-outline">Batal</a>
+      <button type="submit" class="btn btn-primary">Simpan</button>
+    </div>
+  </form>
+</div>
+
+<%- include('../partials/footer') %>
