@@ -1,44 +1,53 @@
-const { getDb } = require('../database/connection');
+const { query } = require('../database/connection');
 const bcrypt = require('bcryptjs');
 
 class User {
-  static findAll() {
-    return getDb().prepare("SELECT id, username, nama, role, is_active, created_at, updated_at FROM users").all();
+  static async findAll() {
+    const result = await query("SELECT id, username, nama, role, is_active, created_at, updated_at FROM users");
+    return result.rows;
   }
 
-  static findById(id) {
-    return getDb().prepare("SELECT id, username, nama, role, is_active, created_at, updated_at FROM users WHERE id = ?").get(id);
+  static async findById(id) {
+    const result = await query("SELECT id, username, nama, role, is_active, created_at, updated_at FROM users WHERE id = $1", [id]);
+    return result.rows[0];
   }
 
-  static findByUsername(username) {
-    return getDb().prepare("SELECT * FROM users WHERE username = ?").get(username);
+  static async findByUsername(username) {
+    const result = await query("SELECT * FROM users WHERE username = $1", [username]);
+    return result.rows[0];
   }
 
-  static create({ username, password, nama, role }) {
+  static async create({ username, password, nama, role }) {
     const hash = bcrypt.hashSync(password, 10);
-    const result = getDb().prepare(
-      "INSERT INTO users (username, password_hash, nama, role) VALUES (?, ?, ?, ?)"
-    ).run(username, hash, nama, role);
-    return result.lastInsertRowid;
+    const result = await query(
+      "INSERT INTO users (username, password_hash, nama, role) VALUES ($1, $2, $3, $4) RETURNING id",
+      [username, hash, nama, role]
+    );
+    return result.rows[0].id;
   }
 
-  static update(id, { username, nama, role, is_active }) {
-    return getDb().prepare(
-      "UPDATE users SET username = ?, nama = ?, role = ?, is_active = ?, updated_at = datetime('now', 'localtime') WHERE id = ?"
-    ).run(username, nama, role, is_active, id);
+  static async update(id, { username, nama, role, is_active }) {
+    await query(
+      "UPDATE users SET username = $1, nama = $2, role = $3, is_active = $4, updated_at = CURRENT_TIMESTAMP WHERE id = $5",
+      [username, nama, role, is_active, id]
+    );
   }
 
-  static updatePassword(id, password) {
+  static async updatePassword(id, password) {
     const hash = bcrypt.hashSync(password, 10);
-    return getDb().prepare("UPDATE users SET password_hash = ?, updated_at = datetime('now', 'localtime') WHERE id = ?").run(hash, id);
+    await query(
+      "UPDATE users SET password_hash = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2",
+      [hash, id]
+    );
   }
 
-  static delete(id) {
-    return getDb().prepare("DELETE FROM users WHERE id = ?").run(id);
+  static async delete(id) {
+    await query("DELETE FROM users WHERE id = $1", [id]);
   }
 
-  static getActiveAdminsCount() {
-    return getDb().prepare("SELECT COUNT(*) as count FROM users WHERE role = 'ADMIN' AND is_active = 1").get().count;
+  static async getActiveAdminsCount() {
+    const result = await query("SELECT COUNT(*) as count FROM users WHERE role = 'ADMIN' AND is_active = 1");
+    return parseInt(result.rows[0].count, 10);
   }
 }
 

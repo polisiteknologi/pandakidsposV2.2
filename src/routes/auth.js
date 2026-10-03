@@ -21,7 +21,7 @@ router.get('/login', (req, res) => {
 });
 
 // POST /auth/login - Proses Login
-router.post('/login', (req, res) => {
+router.post('/login', async (req, res) => {
   const { username, password } = req.body;
 
   if (!username || !password) {
@@ -31,7 +31,7 @@ router.post('/login', (req, res) => {
     });
   }
 
-  const user = User.findByUsername(username);
+  const user = await User.findByUsername(username);
 
   if (!user || !user.is_active) {
     return res.render('auth/login', {

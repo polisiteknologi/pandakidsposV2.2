@@ -35,9 +35,9 @@ router.get('/backup-restore', (req, res) => {
 });
 
 // POST /settings/backup-restore/create
-router.post('/backup-restore/create', (req, res) => {
+router.post('/backup-restore/create', async (req, res) => {
   try {
-    const backupData = BackupService.createManualBackup();
+    const backupData = await BackupService.createManualBackup();
     const dateStr = new Date().toISOString().replace(/T/, '_').replace(/:/g, '').split('.')[0];
     const filename = `PandaKids_Backup_${dateStr}.pandabackup`;
     
@@ -79,7 +79,7 @@ router.post('/backup-restore/upload', upload.single('backup_file'), (req, res) =
 });
 
 // POST /settings/backup-restore/restore
-router.post('/backup-restore/restore', (req, res) => {
+router.post('/backup-restore/restore', async (req, res) => {
   const parsedData = req.session.pendingRestore;
   
   if (!parsedData) {
@@ -88,13 +88,13 @@ router.post('/backup-restore/restore', (req, res) => {
 
   try {
     // 1. Create Pre-Restore Backup
-    const backupFilename = BackupService.createAutoBackup('PreRestore');
+    const backupFilename = await BackupService.createAutoBackup('PreRestore');
     if (!backupFilename) {
       throw new Error('Restore dibatalkan karena backup pengaman gagal dibuat.');
     }
 
     // 2. Perform Restore
-    BackupService.restoreBackup(parsedData);
+    await BackupService.restoreBackup(parsedData);
     
     // Clear session
     delete req.session.pendingRestore;

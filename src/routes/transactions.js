@@ -1,11 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const Transaction = require('../models/Transaction');
+const { query } = require('../database/connection');
 
 // GET /transactions — Halaman riwayat transaksi
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   const search = req.query.search || '';
-  const transactions = search ? Transaction.search(search) : Transaction.findAll();
+  const transactions = search ? await Transaction.search(search) : await Transaction.findAll();
   
   res.render('transactions/index', {
     title: 'Riwayat Transaksi — PandaKids POS',
@@ -23,7 +24,7 @@ router.get('/delete-period', (req, res) => {
 });
 
 // POST /transactions/delete-period — Konfirmasi Hapus Berdasarkan Periode
-router.post('/delete-period', (req, res) => {
+router.post('/delete-period', async (req, res) => {
   const { date_start, date_end, confirm } = req.body;
   
   if (!date_start || !date_end) {
@@ -36,14 +37,17 @@ router.post('/delete-period', (req, res) => {
 
   if (!confirm) {
     // Tampilkan preview jumlah yang akan dihapus
-    const db = require('../database/connection').getDb();
-    const countData = db.prepare(`
+    const countDataRes = await query(`
       SELECT COUNT(*) as count, COALESCE(SUM(total_amount), 0) as total
       FROM transactions 
-      WHERE DATE(created_at) BETWEEN ? AND ?
-    `).get(date_start, date_end);
+      WHERE DATE(created_at AT TIME ZONE 'Asia/Jakarta') BETWEEN $1::DATE AND $2::DATE
+    `, [date_start, date_end]);
+    
+    const countData = countDataRes.rows[0];
+    const count = parseInt(countData.count, 10);
+    const total = parseInt(countData.total, 10);
 
-    if (countData.count === 0) {
+    if (count === 0) {
       return res.redirect('/transactions?error=Tidak ada transaksi dalam periode tersebut');
     }
 
@@ -51,14 +55,14 @@ router.post('/delete-period', (req, res) => {
       title: 'Konfirmasi Hapus Transaksi — PandaKids POS',
       date_start,
       date_end,
-      count: countData.count,
-      total: countData.total
+      count,
+      total
     });
   }
 
   // Proses penghapusan
   try {
-    const count = Transaction.deleteByPeriod(date_start, date_end);
+    const count = await Transaction.deleteByPeriod(date_start, date_end);
     res.redirect(`/transactions?success=deleted_period&count=${count}`);
   } catch (err) {
     res.redirect(`/transactions?error=${encodeURIComponent(err.message)}`);
@@ -66,9 +70,9 @@ router.post('/delete-period', (req, res) => {
 });
 
 // GET /transactions/:id — Detail transaksi
-router.get('/:id', (req, res) => {
+router.get('/:id', async (req, res) => {
   const id = parseInt(req.params.id, 10);
-  const transaction = Transaction.findById(id);
+  const transaction = await Transaction.findById(id);
   
   if (!transaction) {
     return res.redirect('/transactions');
@@ -81,10 +85,10 @@ router.get('/:id', (req, res) => {
 });
 
 // POST /transactions/:id/delete — Hapus satu transaksi
-router.post('/:id/delete', (req, res) => {
+router.post('/:id/delete', async (req, res) => {
   const id = parseInt(req.params.id, 10);
   try {
-    Transaction.delete(id);
+    await Transaction.delete(id);
     res.redirect('/transactions?success=deleted');
   } catch (err) {
     res.redirect(`/transactions?error=${encodeURIComponent(err.message)}`);

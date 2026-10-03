@@ -1,39 +1,47 @@
 const express = require('express');
 const router = express.Router();
 const Transaction = require('../models/Transaction');
+const { query } = require('../database/connection');
 
 // GET /reports — Halaman laporan penjualan
-router.get('/', (req, res) => {
-  const todayStats = Transaction.getStatsByPeriod('today');
-  const weekStats = Transaction.getStatsByPeriod('week');
-  const monthStats = Transaction.getStatsByPeriod('month');
-  const totalStats = Transaction.getStatsByPeriod('all');
+router.get('/', async (req, res) => {
+  try {
+    const todayStats = await Transaction.getStatsByPeriod('today');
+    const weekStats = await Transaction.getStatsByPeriod('week');
+    const monthStats = await Transaction.getStatsByPeriod('month');
+    const totalStats = await Transaction.getStatsByPeriod('all');
 
-  // Laporan per tanggal untuk tabel (contoh: 30 hari terakhir)
-  const db = require('../database/connection').getDb();
-  const dateTo = db.prepare("SELECT DATE('now', 'localtime') as d").get().d;
-  const dateFrom = db.prepare("SELECT DATE('now', 'localtime', '-30 days') as d").get().d;
-  
-  const dailyReport = Transaction.getSalesReport(dateFrom, dateTo);
+    // Laporan per tanggal untuk tabel (contoh: 30 hari terakhir)
+    const dateToRes = await query("SELECT CURRENT_DATE::TEXT as d");
+    const dateFromRes = await query("SELECT (CURRENT_DATE - INTERVAL '30 days')::DATE::TEXT as d");
+    
+    const dateTo = dateToRes.rows[0].d;
+    const dateFrom = dateFromRes.rows[0].d;
+    
+    const dailyReport = await Transaction.getSalesReport(dateFrom, dateTo);
 
-  res.render('reports/index', {
-    title: 'Laporan Penjualan — PandaKids POS',
-    todayStats,
-    weekStats,
-    monthStats,
-    totalStats,
-    dailyReport
-  });
+    res.render('reports/index', {
+      title: 'Laporan Penjualan — PandaKids POS',
+      todayStats,
+      weekStats,
+      monthStats,
+      totalStats,
+      dailyReport
+    });
+  } catch (error) {
+    console.error('Error loading reports:', error);
+    res.status(500).send('Terjadi kesalahan saat mengambil data laporan.');
+  }
 });
 
 // GET /reports/monthly - JSON endpoint for monthly summary
-router.get('/monthly', (req, res) => {
+router.get('/monthly', async (req, res) => {
   try {
     const { month, year } = req.query;
     if (!month || !year) {
       return res.status(400).json({ error: 'Bulan dan tahun harus diisi' });
     }
-    const reportData = Transaction.getMonthlyReport(year, month);
+    const reportData = await Transaction.getMonthlyReport(year, month);
     res.json({ success: true, summary: reportData.summary, paymentSummary: reportData.paymentSummary });
   } catch (err) {
     console.error('Error fetching monthly report:', err);
@@ -42,7 +50,7 @@ router.get('/monthly', (req, res) => {
 });
 
 // GET /reports/export/monthly - Export to Excel
-router.get('/export/monthly', (req, res) => {
+router.get('/export/monthly', async (req, res) => {
   try {
     const { month, year } = req.query;
     if (!month || !year) {
@@ -50,7 +58,7 @@ router.get('/export/monthly', (req, res) => {
     }
     
     const xlsx = require('xlsx');
-    const reportData = Transaction.getMonthlyReport(year, month);
+    const reportData = await Transaction.getMonthlyReport(year, month);
     
     // Create new workbook
     const wb = xlsx.utils.book_new();

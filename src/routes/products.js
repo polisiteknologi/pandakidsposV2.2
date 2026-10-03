@@ -3,9 +3,9 @@ const router = express.Router();
 const Product = require('../models/Product');
 
 // GET /products — Halaman daftar produk
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   const search = req.query.search || '';
-  const products = search ? Product.search(search) : Product.findAll();
+  const products = search ? await Product.search(search) : await Product.findAll();
   res.render('products/index', {
     title: 'Produk — PandaKids POS',
     products,
@@ -23,7 +23,7 @@ router.get('/create', (req, res) => {
 });
 
 // POST /products — Simpan produk baru
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   const { sku, name, category, base_price, stock } = req.body;
 
   // Validasi
@@ -37,7 +37,7 @@ router.post('/', (req, res) => {
   }
 
   // Cek SKU unik
-  const existing = Product.findBySku(sku);
+  const existing = await Product.findBySku(sku);
   if (existing) {
     return res.render('products/form', {
       title: 'Tambah Produk — PandaKids POS',
@@ -46,7 +46,7 @@ router.post('/', (req, res) => {
     });
   }
 
-  Product.create({
+  await Product.create({
     sku,
     name: name.trim(),
     category: category ? category.trim() : 'Umum',
@@ -80,7 +80,7 @@ router.get('/import/template', (req, res) => {
 });
 
 // POST /products/import/preview — Proses file dan tampilkan preview
-router.post('/import/preview', upload.single('file'), (req, res) => {
+router.post('/import/preview', upload.single('file'), async (req, res) => {
   if (!req.file) {
     return res.render('products/import', {
       title: 'Import Produk — PandaKids POS',
@@ -91,12 +91,13 @@ router.post('/import/preview', upload.single('file'), (req, res) => {
   const filePath = req.file.path;
   const ext = req.file.originalname.split('.').pop().toLowerCase();
   
-  const processData = (data) => {
+  const processData = async (data) => {
     // Validasi data
     const preview = [];
     let hasError = false;
 
-    data.forEach((row, index) => {
+    for (let index = 0; index < data.length; index++) {
+      const row = data[index];
       const rowNum = index + 2; // Assuming header is row 1
       const item = {
         rowNum,
@@ -115,7 +116,7 @@ router.post('/import/preview', upload.single('file'), (req, res) => {
       if (isNaN(item.stok) || item.stok < 0) item.errors.push('Stok harus angka >= 0.');
 
       if (item.kode) {
-        const existing = Product.findBySku(item.kode);
+        const existing = await Product.findBySku(item.kode);
         if (existing) {
           item.existing = true;
           item.errors.push('Produk sudah ada di database (akan dilewati).');
@@ -124,7 +125,7 @@ router.post('/import/preview', upload.single('file'), (req, res) => {
 
       if (item.errors.length > 0 && !item.existing) hasError = true;
       preview.push(item);
-    });
+    }
 
     // Check duplicate SKU in file
     const skusInFile = new Set();
@@ -139,9 +140,6 @@ router.post('/import/preview', upload.single('file'), (req, res) => {
       }
     });
 
-    // Save temporary data in session or hidden form field? 
-    // We can just render the preview and encode the valid data as base64 hidden field
-    // so we don't have to save state in session.
     const validData = preview.filter(p => p.errors.length === 0 || (p.errors.length === 1 && p.existing));
     const importData = validData.filter(p => !p.existing).map(p => ({
       sku: p.kode,
@@ -165,16 +163,16 @@ router.post('/import/preview', upload.single('file'), (req, res) => {
       fs.createReadStream(filePath)
         .pipe(csv())
         .on('data', (data) => results.push(data))
-        .on('end', () => {
+        .on('end', async () => {
           fs.unlinkSync(filePath);
-          processData(results);
+          await processData(results);
         });
     } else if (ext === 'xlsx' || ext === 'xls') {
       const workbook = xlsx.readFile(filePath);
       const sheetName = workbook.SheetNames[0];
       const results = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
       fs.unlinkSync(filePath);
-      processData(results);
+      await processData(results);
     } else {
       fs.unlinkSync(filePath);
       return res.render('products/import', {
@@ -192,13 +190,13 @@ router.post('/import/preview', upload.single('file'), (req, res) => {
 });
 
 // POST /products/import/confirm — Simpan ke database
-router.post('/import/confirm', (req, res) => {
+router.post('/import/confirm', async (req, res) => {
   const { dataEncoded } = req.body;
   if (!dataEncoded) return res.redirect('/products/import');
 
   try {
     const products = JSON.parse(Buffer.from(dataEncoded, 'base64').toString('utf-8'));
-    const importedCount = Product.importMany(products);
+    const importedCount = await Product.importMany(products);
     res.redirect(`/products?success=imported&count=${importedCount}`);
   } catch (err) {
     console.error(err);
@@ -207,8 +205,8 @@ router.post('/import/confirm', (req, res) => {
 });
 
 // GET /products/:id/edit — Form edit produk
-router.get('/:id/edit', (req, res) => {
-  const product = Product.findById(req.params.id);
+router.get('/:id/edit', async (req, res) => {
+  const product = await Product.findById(req.params.id);
   if (!product) return res.redirect('/products');
 
   res.render('products/form', {
@@ -219,11 +217,11 @@ router.get('/:id/edit', (req, res) => {
 });
 
 // POST /products/:id — Update produk
-router.post('/:id', (req, res) => {
+router.post('/:id', async (req, res) => {
   const id = parseInt(req.params.id, 10);
   const { sku, name, category, base_price, stock } = req.body;
 
-  const product = Product.findById(id);
+  const product = await Product.findById(id);
   if (!product) return res.redirect('/products');
 
   // Validasi
@@ -237,7 +235,7 @@ router.post('/:id', (req, res) => {
   }
 
   // Cek SKU unik (kecuali milik sendiri)
-  const existing = Product.findBySku(sku);
+  const existing = await Product.findBySku(sku);
   if (existing && existing.id !== id) {
     return res.render('products/form', {
       title: 'Edit Produk — PandaKids POS',
@@ -246,7 +244,7 @@ router.post('/:id', (req, res) => {
     });
   }
 
-  Product.update(id, {
+  await Product.update(id, {
     sku,
     name: name.trim(),
     category: category ? category.trim() : 'Umum',
@@ -258,10 +256,10 @@ router.post('/:id', (req, res) => {
 });
 
 // POST /products/:id/delete — Hapus produk
-router.post('/:id/delete', (req, res) => {
+router.post('/:id/delete', async (req, res) => {
   const id = parseInt(req.params.id, 10);
   try {
-    Product.delete(id);
+    await Product.delete(id);
     res.redirect('/products?success=deleted');
   } catch (err) {
     // Gagal hapus jika produk sudah pernah dipakai di transaksi (FK RESTRICT)

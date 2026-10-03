@@ -1,147 +1,162 @@
-const { getDb } = require('../database/connection');
+const { query, getClient } = require('../database/connection');
 
 const Product = {
   // Helper untuk menghitung harga jual
   _mapProduct(p) {
     if (!p) return null;
+    
+    // Konversi string BIGINT ke Number
+    const base_price = parseInt(p.base_price, 10) || 0;
+    
     return {
       ...p,
-      price: Math.round(p.base_price * 1.4)
+      price: Math.round(base_price * 1.4),
+      base_price: base_price,
+      // pastikan ID dan stock tetap integer
+      id: parseInt(p.id, 10),
+      stock: parseInt(p.stock, 10)
     };
   },
 
   // Ambil semua produk
-  findAll() {
-    const db = getDb();
-    const products = db.prepare('SELECT * FROM products ORDER BY name ASC').all();
-    return products.map(p => this._mapProduct(p));
+  async findAll() {
+    const result = await query('SELECT * FROM products ORDER BY name ASC');
+    return result.rows.map(p => this._mapProduct(p));
   },
 
   // Cari produk berdasarkan keyword (nama, sku, atau kategori)
-  search(keyword) {
-    const db = getDb();
+  async search(keyword) {
     const like = `%${keyword}%`;
-    const products = db.prepare(
-      'SELECT * FROM products WHERE name LIKE ? OR sku LIKE ? OR category LIKE ? ORDER BY name ASC'
-    ).all(like, like, like);
-    return products.map(p => this._mapProduct(p));
+    const result = await query(
+      'SELECT * FROM products WHERE name ILIKE $1 OR sku ILIKE $2 OR category ILIKE $3 ORDER BY name ASC',
+      [like, like, like]
+    );
+    return result.rows.map(p => this._mapProduct(p));
   },
 
-
   // Cari produk berdasarkan ID
-  findById(id) {
-    const db = getDb();
-    const p = db.prepare('SELECT * FROM products WHERE id = ?').get(id);
-    return this._mapProduct(p);
+  async findById(id) {
+    const result = await query('SELECT * FROM products WHERE id = $1', [id]);
+    return this._mapProduct(result.rows[0]);
   },
 
   // Hitung total produk
-  getTotalCount() {
-    const db = getDb();
-    const result = db.prepare('SELECT COUNT(*) as count FROM products').get();
-    return result.count;
+  async getTotalCount() {
+    const result = await query('SELECT COUNT(*) as count FROM products');
+    return parseInt(result.rows[0].count, 10);
   },
 
   // Cari produk berdasarkan SKU
-  findBySku(sku) {
-    const db = getDb();
-    const p = db.prepare('SELECT * FROM products WHERE sku = ?').get(sku);
-    return this._mapProduct(p);
+  async findBySku(sku) {
+    const result = await query('SELECT * FROM products WHERE sku = $1', [sku]);
+    return this._mapProduct(result.rows[0]);
   },
 
   // Buat produk baru
-  create({ name, sku, category, price, base_price, stock }) {
-    const db = getDb();
+  async create({ name, sku, category, price, base_price, stock }) {
     const final_base_price = base_price !== undefined ? base_price : (price || 0);
     const final_price = Math.round(final_base_price * 1.4);
-    const stmt = db.prepare(`
-      INSERT INTO products (name, sku, category, price, base_price, stock)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `);
-    const result = stmt.run(
-      name, 
-      sku || null, 
-      category || 'Umum', 
-      final_price, 
-      final_base_price, 
-      stock || 0
+    
+    const result = await query(
+      `INSERT INTO products (name, sku, category, price, base_price, stock)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING id`,
+      [
+        name, 
+        sku || null, 
+        category || 'Umum', 
+        final_price, 
+        final_base_price, 
+        stock || 0
+      ]
     );
-    return this.findById(result.lastInsertRowid);
+    
+    return this.findById(result.rows[0].id);
   },
 
   // Update produk
-  update(id, { name, sku, category, price, base_price, stock }) {
-    const db = getDb();
-    
+  async update(id, { name, sku, category, price, base_price, stock }) {
     if (base_price !== undefined) {
       const final_price = Math.round(base_price * 1.4);
-      db.prepare(
-        'UPDATE products SET name = ?, sku = ?, category = ?, price = ?, base_price = ?, stock = ?, updated_at = datetime(\'now\', \'localtime\') WHERE id = ?'
-      ).run(name, sku || null, category || 'Umum', final_price, base_price, stock, id);
+      await query(
+        `UPDATE products 
+         SET name = $1, sku = $2, category = $3, price = $4, base_price = $5, stock = $6, updated_at = CURRENT_TIMESTAMP 
+         WHERE id = $7`,
+        [name, sku || null, category || 'Umum', final_price, base_price, stock, id]
+      );
     } else {
-      db.prepare(
-        'UPDATE products SET name = ?, sku = ?, category = ?, stock = ?, updated_at = datetime(\'now\', \'localtime\') WHERE id = ?'
-      ).run(name, sku || null, category || 'Umum', stock, id);
+      await query(
+        `UPDATE products 
+         SET name = $1, sku = $2, category = $3, stock = $4, updated_at = CURRENT_TIMESTAMP 
+         WHERE id = $5`,
+        [name, sku || null, category || 'Umum', stock, id]
+      );
     }
     
     return this.findById(id);
   },
 
   // Import banyak produk
-  importMany(products) {
-    const db = getDb();
+  async importMany(products) {
     let importedCount = 0;
+    const client = await getClient();
     
-    const importTransaction = db.transaction((items) => {
-      const stmt = db.prepare(`
-        INSERT INTO products (name, sku, category, price, base_price, stock)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `);
+    try {
+      await client.query('BEGIN');
       
-      for (const item of items) {
+      for (const item of products) {
         // Only insert if SKU doesn't exist
-        const existing = db.prepare('SELECT id FROM products WHERE sku = ?').get(item.sku);
-        if (!existing) {
+        const existing = await client.query('SELECT id FROM products WHERE sku = $1', [item.sku]);
+        if (existing.rows.length === 0) {
           const final_price = Math.round(item.base_price * 1.4);
-          stmt.run(
-            item.name,
-            item.sku,
-            item.category || 'Umum',
-            final_price,
-            item.base_price,
-            item.stock || 0
+          await client.query(
+            `INSERT INTO products (name, sku, category, price, base_price, stock)
+             VALUES ($1, $2, $3, $4, $5, $6)`,
+            [
+              item.name,
+              item.sku,
+              item.category || 'Umum',
+              final_price,
+              item.base_price,
+              item.stock || 0
+            ]
           );
           importedCount++;
         }
       }
-    });
+      
+      await client.query('COMMIT');
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
     
-    importTransaction(products);
     return importedCount;
   },
 
   // Hapus produk
-  delete(id) {
-    const db = getDb();
-    return db.prepare('DELETE FROM products WHERE id = ?').run(id);
+  async delete(id) {
+    await query('DELETE FROM products WHERE id = $1', [id]);
   },
 
   // Kurangi stok (saat transaksi)
-  decreaseStock(id, quantity) {
-    const db = getDb();
-    return db.prepare(`
-      UPDATE products SET stock = stock - ?, updated_at = datetime('now', 'localtime')
-      WHERE id = ? AND stock >= ?
-    `).run(quantity, id, quantity);
+  async decreaseStock(id, quantity) {
+    await query(
+      `UPDATE products SET stock = stock - $1, updated_at = CURRENT_TIMESTAMP
+       WHERE id = $2 AND stock >= $1`,
+      [quantity, id]
+    );
   },
 
   // Tambah stok
-  increaseStock(id, quantity) {
-    const db = getDb();
-    return db.prepare(`
-      UPDATE products SET stock = stock + ?, updated_at = datetime('now', 'localtime')
-      WHERE id = ?
-    `).run(quantity, id);
+  async increaseStock(id, quantity) {
+    await query(
+      `UPDATE products SET stock = stock + $1, updated_at = CURRENT_TIMESTAMP
+       WHERE id = $2`,
+      [quantity, id]
+    );
   }
 };
 

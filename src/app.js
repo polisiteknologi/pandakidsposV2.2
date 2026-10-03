@@ -18,7 +18,7 @@ app.set('views', path.join(__dirname, 'views'));
 
 const session = require('express-session');
 app.use(session({
-  secret: 'pandakids-pos-secret-key-v2', // in production use env var
+  secret: process.env.SESSION_SECRET || 'pandakids-pos-secret-key-v2', // in production use env var
   resave: false,
   saveUninitialized: false,
   cookie: { maxAge: 12 * 60 * 60 * 1000 } // 12 hours
@@ -49,9 +49,7 @@ const requireAdmin = (req, res, next) => {
   next();
 };
 
-// ── Inisialisasi Database ──────────────────────────────
-initializeDatabase();
-
+// ── Inisialisasi Database & Start Server (async) ───────
 const Product = require('./models/Product');
 const Transaction = require('./models/Transaction');
 
@@ -61,11 +59,11 @@ const authRouter = require('./routes/auth');
 app.use('/auth', authRouter);
 
 // Halaman utama
-app.get('/', requireAuth, (req, res) => {
+app.get('/', requireAuth, async (req, res) => {
   try {
-    const totalProducts = Product.getTotalCount();
-    const todayStats = Transaction.getTodayStats();
-    const recentTransactions = Transaction.getRecent(5);
+    const totalProducts = await Product.getTotalCount();
+    const todayStats = await Transaction.getTodayStats();
+    const recentTransactions = await Transaction.getRecent(5);
 
     res.render('index', {
       title: 'PandaKids POS - Dashboard',
@@ -121,25 +119,32 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// ── Start Server ───────────────────────────────────────
-const server = app.listen(PORT, () => {
-  console.log(`\n🐼 PandaKids POS berjalan di http://localhost:${PORT}\n`);
-});
+// ── Start Server (async bootstrap) ────────────────────
+async function startServer() {
+  try {
+    await initializeDatabase();
+  } catch (err) {
+    console.error('\n❌ Gagal menginisialisasi database:', err.message);
+    process.exit(1);
+  }
 
-// Graceful shutdown
-process.on('SIGINT', () => {
-  console.log('\n🛑 Menutup server...');
-  closeDb();
-  server.close(() => {
-    process.exit(0);
+  const server = app.listen(PORT, () => {
+    console.log(`\n🐼 PandaKids POS berjalan di http://localhost:${PORT}\n`);
   });
-});
 
-process.on('SIGTERM', () => {
-  closeDb();
-  server.close(() => {
-    process.exit(0);
-  });
-});
+  // Graceful shutdown
+  const shutdown = async (signal) => {
+    console.log(`\n🛑 Menerima ${signal}, menutup server...`);
+    await closeDb();
+    server.close(() => {
+      process.exit(0);
+    });
+  };
+
+  process.on('SIGINT',  () => shutdown('SIGINT'));
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+}
+
+startServer();
 
 module.exports = app;

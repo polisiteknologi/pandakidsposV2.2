@@ -3,8 +3,8 @@ const router = express.Router();
 const User = require('../models/User');
 
 // GET /users - Daftar User
-router.get('/', (req, res) => {
-  const users = User.findAll();
+router.get('/', async (req, res) => {
+  const users = await User.findAll();
   res.render('users/index', {
     title: 'Manajemen Pengguna - PandaKids POS',
     users,
@@ -23,7 +23,7 @@ router.get('/create', (req, res) => {
 });
 
 // POST /users - Simpan User Baru
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   const { username, password, nama, role } = req.body;
 
   if (!username || !password || !nama || !role) {
@@ -34,7 +34,7 @@ router.post('/', (req, res) => {
     });
   }
 
-  const existing = User.findByUsername(username);
+  const existing = await User.findByUsername(username);
   if (existing) {
     return res.render('users/form', {
       title: 'Tambah Pengguna - PandaKids POS',
@@ -44,7 +44,7 @@ router.post('/', (req, res) => {
   }
 
   try {
-    User.create({ username, password, nama, role });
+    await User.create({ username, password, nama, role });
     res.redirect('/users?success=added');
   } catch (err) {
     res.render('users/form', {
@@ -56,8 +56,8 @@ router.post('/', (req, res) => {
 });
 
 // GET /users/:id/edit - Form Edit User
-router.get('/:id/edit', (req, res) => {
-  const userItem = User.findById(req.params.id);
+router.get('/:id/edit', async (req, res) => {
+  const userItem = await User.findById(req.params.id);
   if (!userItem) return res.redirect('/users');
 
   res.render('users/form', {
@@ -68,16 +68,16 @@ router.get('/:id/edit', (req, res) => {
 });
 
 // POST /users/:id - Update User
-router.post('/:id', (req, res) => {
+router.post('/:id', async (req, res) => {
   const id = parseInt(req.params.id, 10);
   const { username, password, nama, role, is_active } = req.body;
   const isActiveNum = is_active ? 1 : 0;
 
-  const userItem = User.findById(id);
+  const userItem = await User.findById(id);
   if (!userItem) return res.redirect('/users');
 
   // Check unique username
-  const existing = User.findByUsername(username);
+  const existing = await User.findByUsername(username);
   if (existing && existing.id !== id) {
     return res.render('users/form', {
       title: 'Edit Pengguna - PandaKids POS',
@@ -88,7 +88,7 @@ router.post('/:id', (req, res) => {
 
   // Check last admin
   if (userItem.role === 'ADMIN' && (role !== 'ADMIN' || isActiveNum === 0)) {
-    const adminCount = User.getActiveAdminsCount();
+    const adminCount = await User.getActiveAdminsCount();
     if (adminCount <= 1) {
       return res.render('users/form', {
         title: 'Edit Pengguna - PandaKids POS',
@@ -99,9 +99,9 @@ router.post('/:id', (req, res) => {
   }
 
   try {
-    User.update(id, { username, nama, role, is_active: isActiveNum });
+    await User.update(id, { username, nama, role, is_active: isActiveNum });
     if (password && password.trim() !== '') {
-      User.updatePassword(id, password);
+      await User.updatePassword(id, password);
     }
     res.redirect('/users?success=updated');
   } catch (err) {

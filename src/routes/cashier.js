@@ -11,10 +11,10 @@ router.get('/', (req, res) => {
 });
 
 // API endpoint untuk pencarian produk
-router.get('/api/products', (req, res) => {
+router.get('/api/products', async (req, res) => {
   try {
     const search = req.query.search || '';
-    const products = search ? Product.search(search) : Product.findAll();
+    const products = search ? await Product.search(search) : await Product.findAll();
     res.json(products);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -22,7 +22,7 @@ router.get('/api/products', (req, res) => {
 });
 
 // API endpoint untuk checkout / bayar
-router.post('/api/checkout', (req, res) => {
+router.post('/api/checkout', async (req, res) => {
   try {
     const { items, payments, payment_amount, jumlah_dibayar } = req.body;
     const user_id = req.session.user ? req.session.user.id : null;
@@ -37,7 +37,7 @@ router.post('/api/checkout', (req, res) => {
     }
 
     // Proses transaksi (stok dicek dan dikurangi di model)
-    const transaction = Transaction.create({ items, payments, payment_amount, user_id, jumlah_dibayar });
+    const transaction = await Transaction.create({ items, payments, payment_amount, user_id, jumlah_dibayar });
     
     res.json({ success: true, transaction });
   } catch (error) {
